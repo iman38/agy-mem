@@ -34,6 +34,16 @@ export function queryObservations(
   const conceptArray = Array.from(config.observationConcepts);
   const conceptPlaceholders = conceptArray.map(() => '?').join(',');
 
+  const allowedPlatforms = platformSource === 'gemini' || platformSource === 'claude'
+    ? ['claude', 'gemini']
+    : platformSource
+      ? [platformSource]
+      : [];
+
+  const platformClause = allowedPlatforms.length > 0
+    ? `AND COALESCE(s.platform_source, 'claude') IN (${allowedPlatforms.map(() => '?').join(',')})`
+    : '';
+
   return db.db.prepare(`
     SELECT
       o.id,
@@ -58,14 +68,14 @@ export function queryObservations(
         SELECT 1 FROM json_each(o.concepts)
         WHERE value IN (${conceptPlaceholders})
       )
-      ${platformSource ? "AND COALESCE(s.platform_source, 'claude') = ?" : ''}
+      ${platformClause}
     ORDER BY o.created_at_epoch DESC
     LIMIT ?
   `).all(
     project,
     ...typeArray,
     ...conceptArray,
-    ...(platformSource ? [platformSource] : []),
+    ...allowedPlatforms,
     config.totalObservationCount
   ) as Observation[];
 }
@@ -79,6 +89,16 @@ export function querySummaries(
   config: ContextConfig,
   platformSource?: string
 ): SessionSummary[] {
+  const allowedPlatforms = platformSource === 'gemini' || platformSource === 'claude'
+    ? ['claude', 'gemini']
+    : platformSource
+      ? [platformSource]
+      : [];
+
+  const platformClause = allowedPlatforms.length > 0
+    ? `AND COALESCE(s.platform_source, 'claude') IN (${allowedPlatforms.map(() => '?').join(',')})`
+    : '';
+
   return db.db.prepare(`
     SELECT
       ss.id,
@@ -94,11 +114,11 @@ export function querySummaries(
     FROM session_summaries ss
     LEFT JOIN sdk_sessions s ON ss.memory_session_id = s.memory_session_id
     WHERE ss.project = ?
-      ${platformSource ? "AND COALESCE(s.platform_source, 'claude') = ?" : ''}
+      ${platformClause}
     ORDER BY ss.created_at_epoch DESC
     LIMIT ?
   `).all(
-    ...[project, ...(platformSource ? [platformSource] : []), config.sessionCount + SUMMARY_LOOKAHEAD]
+    ...[project, ...allowedPlatforms, config.sessionCount + SUMMARY_LOOKAHEAD]
   ) as SessionSummary[];
 }
 
@@ -121,6 +141,16 @@ export function queryObservationsMulti(
 
   // Build IN clause for projects
   const projectPlaceholders = projects.map(() => '?').join(',');
+
+  const allowedPlatforms = platformSource === 'gemini' || platformSource === 'claude'
+    ? ['claude', 'gemini']
+    : platformSource
+      ? [platformSource]
+      : [];
+
+  const platformClause = allowedPlatforms.length > 0
+    ? `AND COALESCE(s.platform_source, 'claude') IN (${allowedPlatforms.map(() => '?').join(',')})`
+    : '';
 
   return db.db.prepare(`
     SELECT
@@ -147,14 +177,14 @@ export function queryObservationsMulti(
         SELECT 1 FROM json_each(o.concepts)
         WHERE value IN (${conceptPlaceholders})
       )
-      ${platformSource ? "AND COALESCE(s.platform_source, 'claude') = ?" : ''}
+      ${platformClause}
     ORDER BY o.created_at_epoch DESC
     LIMIT ?
   `).all(
     ...projects,
     ...typeArray,
     ...conceptArray,
-    ...(platformSource ? [platformSource] : []),
+    ...allowedPlatforms,
     config.totalObservationCount
   ) as Observation[];
 }
@@ -174,6 +204,16 @@ export function querySummariesMulti(
   // Build IN clause for projects
   const projectPlaceholders = projects.map(() => '?').join(',');
 
+  const allowedPlatforms = platformSource === 'gemini' || platformSource === 'claude'
+    ? ['claude', 'gemini']
+    : platformSource
+      ? [platformSource]
+      : [];
+
+  const platformClause = allowedPlatforms.length > 0
+    ? `AND COALESCE(s.platform_source, 'claude') IN (${allowedPlatforms.map(() => '?').join(',')})`
+    : '';
+
   return db.db.prepare(`
     SELECT
       ss.id,
@@ -190,10 +230,10 @@ export function querySummariesMulti(
     FROM session_summaries ss
     LEFT JOIN sdk_sessions s ON ss.memory_session_id = s.memory_session_id
     WHERE ss.project IN (${projectPlaceholders})
-      ${platformSource ? "AND COALESCE(s.platform_source, 'claude') = ?" : ''}
+      ${platformClause}
     ORDER BY ss.created_at_epoch DESC
     LIMIT ?
-  `).all(...projects, ...(platformSource ? [platformSource] : []), config.sessionCount + SUMMARY_LOOKAHEAD) as SessionSummary[];
+  `).all(...projects, ...allowedPlatforms, config.sessionCount + SUMMARY_LOOKAHEAD) as SessionSummary[];
 }
 
 /**
