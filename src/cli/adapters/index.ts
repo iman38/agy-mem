@@ -9,7 +9,7 @@ export function getPlatformAdapter(platform: string): PlatformAdapter {
   switch (platform) {
     case 'claude-code': return claudeCodeAdapter;
     case 'cursor': return cursorAdapter;
-    case 'gemini':
+    case 'gemini': return claudeCodeAdapter; // Antigravity (agy) is a fork of Claude Code and shares its hook contract
     case 'gemini-cli': return geminiCliAdapter;
     case 'windsurf': return windsurfAdapter;
     case 'raw': return rawAdapter;
