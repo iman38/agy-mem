@@ -23,6 +23,7 @@ function formatSourceLabel(source: string): string {
   if (source === 'all') return 'All';
   if (source === 'claude') return 'Claude';
   if (source === 'codex') return 'Codex';
+  if (source === 'gemini') return 'Gemini';
   return source.charAt(0).toUpperCase() + source.slice(1);
 }
 
